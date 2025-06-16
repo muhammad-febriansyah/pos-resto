@@ -147,7 +147,7 @@ class CashierController extends Controller
                 }
                 DB::commit();
 
-                $penjualan->load(['customer', 'meja']); // Load relations for WhatsApp
+                $penjualan->load(['customer', 'meja']);
                 if ($penjualan->customer && $penjualan->customer->phone) {
                     $message = $this->buildInvoiceMessage($penjualan, $cartItemsData, $namaweb, $amountPaid, $change);
                     $this->sendWhatsAppMessage($penjualan->customer->phone, $message);
@@ -155,15 +155,13 @@ class CashierController extends Controller
                     Log::info("WhatsApp message not sent (Cash): Customer phone number not available or customer not selected.");
                 }
 
-                // --- UBAH: Kembalikan JSON dengan data invoice dan kembalian ---
-                $penjualan->load(['details.produk', 'customer', 'meja']); // Load necessary relations for frontend display
+                $penjualan->load(['details.produk', 'customer', 'meja']);
                 return response()->json([
                     'success' => true,
                     'message' => 'Pembayaran tunai berhasil!',
-                    'invoice' => $penjualan->toArray(), // Kirim data invoice lengkap
+                    'invoice' => $penjualan->toArray(),
                     'change' => $change,
                 ]);
-                // --- Akhir Perubahan ---
             }
 
             if ($request->paymentMethod === 'duitku') {
@@ -296,7 +294,7 @@ class CashierController extends Controller
 
                     DB::commit();
 
-                    $penjualan->load(['customer', 'meja']); // Load relations
+                    $penjualan->load(['customer', 'meja']);
                     if ($penjualan->customer && $penjualan->customer->phone) {
                         $message = $this->buildDuitkuPendingMessage($penjualan, $cartItemsData, $namaweb, $data['paymentUrl'] ?? null);
                         $this->sendWhatsAppMessage($penjualan->customer->phone, $message);
@@ -336,18 +334,6 @@ class CashierController extends Controller
         }
     }
 
-    // Metode saleSuccess tidak lagi diperlukan jika tidak ada halaman sukses terpisah
-    // public function saleSuccess(Request $request)
-    // {
-    //     // ...
-    // }
-
-    // Helper methods (buildInvoiceMessage, buildDuitkuPendingMessage, sendWhatsAppMessage)
-    // ... (Your existing helper methods here, ensure they are still correct) ...
-
-    /**
-     * Builds the WhatsApp invoice message for cash payments.
-     */
     protected function buildInvoiceMessage(Penjualan $penjualan, array $cartItemsData, string $appName, ?float $amountPaid = null, ?float $change = null): string
     {
         $message = "🌟 *INVOICE PEMBELIAN - " . strtoupper($appName) . " 🌟*\n\n";
@@ -394,9 +380,6 @@ class CashierController extends Controller
         return $message;
     }
 
-    /**
-     * Builds the WhatsApp message for Duitku pending payments.
-     */
     protected function buildDuitkuPendingMessage(Penjualan $penjualan, array $cartItemsData, string $appName, ?string $paymentUrl = null): string
     {
         $message = "⚠️ *PEMBAYARAN BELUM SELESAI - " . strtoupper($appName) . " ⚠️*\n\n";
@@ -431,15 +414,12 @@ class CashierController extends Controller
         return $message;
     }
 
-    /**
-     * Sends a WhatsApp message using the configured gateway.
-     */
     protected function sendWhatsAppMessage(string $number, string $message): void
     {
         $waNumber = preg_replace('/[^0-9]/', '', $number);
 
         if (empty($waNumber) || strlen($waNumber) < 9) {
-            Log::warning("WhatsApp message not sent: Invalid or empty phone number provided for customer.");
+            Log::warning("WhatsApp message not sent: Invalid or empty phone number provided for customer. Number: {$number}");
             return;
         }
 

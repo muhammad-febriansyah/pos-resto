@@ -2,6 +2,10 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Widgets\BestSeller;
+use App\Filament\Widgets\PenjualanChart;
+use App\Filament\Widgets\PenjualanChartWidget;
+use App\Filament\Widgets\StatsOverview;
 use App\Models\Setting;
 use Filament\FontProviders\GoogleFontProvider;
 use Filament\Http\Middleware\Authenticate;
@@ -20,6 +24,7 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Leandrocfe\FilamentApexCharts\FilamentApexChartsPlugin;
 use Nuxtifyts\DashStackTheme\DashStackThemePlugin;
 
 class AdminPanelProvider extends PanelProvider
@@ -55,6 +60,9 @@ class AdminPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
                 Widgets\AccountWidget::class,
+                StatsOverview::class,
+                PenjualanChart::class,
+                BestSeller::class,
             ])
             ->navigationItems([
                 NavigationItem::make('Kasir')
@@ -76,6 +84,9 @@ class AdminPanelProvider extends PanelProvider
                 DispatchServingFilamentEvent::class,
             ])
             ->theme(asset('css/filament/admin/theme.css'))
+            ->plugins([
+                FilamentApexChartsPlugin::make()
+            ])
             ->authMiddleware([
                 Authenticate::class,
             ]);

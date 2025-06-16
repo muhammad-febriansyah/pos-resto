@@ -23,7 +23,7 @@ class ListPelanggans extends ListRecords
     protected function getTableQuery(): ?Builder
     {
         return User::query()
-            ->where('role', 'pelanggan') // Filter untuk hanya menampilkan pelanggan
+            ->where('role', 'customer') // Filter untuk hanya menampilkan pelanggan
             ->withoutGlobalScopes(); // Menghindari scope global yang mungkin diterapkan pada model
     }
 

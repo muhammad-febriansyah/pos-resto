@@ -32,6 +32,7 @@ use Filament\Support\Enums\FontWeight;
 use Filament\Support\RawJs;
 use Filament\Tables;
 use Filament\Tables\Actions\DeleteBulkAction;
+use Filament\Tables\Columns\TextInputColumn;
 use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Table;
 use Icetalker\FilamentTableRepeater\Forms\Components\TableRepeater;
@@ -339,11 +340,11 @@ class ProdukResource extends Resource
                     ->weight(FontWeight::Bold)
                     ->sortable(false), // Tidak perlu disortir karena ini kolom kalkulasi
 
-
-                Tables\Columns\TextColumn::make('stok')
-                    ->label('Stok')
-                    ->numeric()
-                    ->sortable(),
+                TextInputColumn::make('stok')
+                    ->type('number')
+                    ->sortable()
+                    ->searchable()
+                    ->label('Stok'),
 
                 ToggleColumn::make('is_active'),
 

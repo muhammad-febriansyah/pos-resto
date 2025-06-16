@@ -24,6 +24,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
@@ -36,6 +37,27 @@ class TransaksiResource extends Resource
     protected static ?string $navigationGroup = 'Penjualan';
     protected static ?string $navigationLabel = 'Transaksi';
     protected static ?int $navigationSort = 81;
+
+    public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::count();
+    }
+
+    public static function getNavigationBadgeTooltip(): ?string
+    {
+        return 'Jumlah Transaksi';
+    }
+
+
+    public static function getGlobalSearchResultTitle(Model $record): string | Htmlable
+    {
+        return $record->invoice_number;
+    }
+
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['invoice_number', 'user.name', 'customer.name'];
+    }
 
     public static function canCreate(): bool
     {
@@ -58,6 +80,7 @@ class TransaksiResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->poll('10s')
             ->columns([
                 TextColumn::make("No")->rowIndex(),
                 TextColumn::make('invoice_number')
