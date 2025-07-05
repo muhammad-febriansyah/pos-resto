@@ -1,11 +1,8 @@
-// src/pages/CashierPage.tsx
-
 import { Head, router, usePage } from '@inertiajs/react';
 import axios from 'axios';
 import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
-// Import Layout dan Komponen yang sudah dipecah
 import CashierLayout from '@/layouts/CashierLayout';
 import CashierNavbar from './components/CashierNavbar';
 import MobileMenu from './components/MobileMenu';
@@ -13,13 +10,11 @@ import OrderSummary from './components/OrderSummary';
 import ProductGrid from './components/ProductGrid';
 import TransactionHistory from './components/TransactionHistory';
 
-// Import Dialog components for the success pop-up
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ArrowLeft, CheckCircle, Printer } from 'lucide-react';
 
-// Import Types (pastikan path ini sudah benar di project Anda)
 import { CartItem } from '@/types';
 import { Kategori } from '@/types/kategori';
 import { Meja } from '@/types/meja';
@@ -28,7 +23,6 @@ import { Product } from '@/types/product';
 import { Setting } from '@/types/setting';
 import { User } from '@/types/user';
 
-// Interface untuk data invoice yang akan diterima di pop-up
 interface DetailPenjualanWithProduk {
     id: number;
     penjualan_id: number;
@@ -43,8 +37,6 @@ interface InvoiceForPopUp extends Omit<Penjualan, 'details'> {
     details: DetailPenjualanWithProduk[];
 }
 
-// Main Page Props (dari Inertia.js)
-// Ini adalah tipe untuk *seluruh* objek `props` yang diterima dari Laravel
 interface CashierPageProps {
     products: Product[];
     mejas: Meja[];
@@ -58,13 +50,26 @@ interface CashierPageProps {
     filters?: {
         invoice_number?: string;
     };
-    // Tambahkan index signature agar TypeScript tidak error saat mengakses props yang tidak didefinisikan secara eksplisit
     [key: string]: any;
 }
 
+declare global {
+    interface Window {
+        snap: {
+            pay: (
+                token: string,
+                options?: {
+                    onSuccess?: (result: any) => void;
+                    onPending?: (result: any) => void;
+                    onError?: (result: any) => void;
+                    onClose?: () => void;
+                },
+            ) => void;
+        };
+    }
+}
+
 const CashierPage: React.FC<CashierPageProps> = ({
-    // Destructure props yang hanya untuk inisialisasi awal.
-    // Ini adalah data yang diterima saat komponen pertama kali dirender dari server.
     products: initialProducts,
     mejas: initialMejas,
     customers: initialCustomers,
@@ -73,13 +78,8 @@ const CashierPage: React.FC<CashierPageProps> = ({
     latestTransactions: initialLatestTransactions,
     auth: initialAuth,
 }) => {
-    // Access page props using usePage hook.
-    // Ini akan menjadi sumber kebenaran untuk props halaman yang diperbarui oleh Inertia.
     const { props: currentInertiaPageProps } = usePage<CashierPageProps>();
 
-    // States that hold the data.
-    // Initialize them with the initial props from the server render.
-    // They will be updated later by `useEffect` hook whenever `currentInertiaPageProps` change.
     const [products, setProducts] = useState(initialProducts);
     const [mejas, setMejas] = useState(initialMejas);
     const [customers, setCustomers] = useState(initialCustomers);
@@ -87,78 +87,126 @@ const CashierPage: React.FC<CashierPageProps> = ({
     const [kategoris, setKategoris] = useState(initialKategoris);
     const [transactionHistory, setTransactionHistory] = useState<Penjualan[]>(initialLatestTransactions);
 
-    // --- State Lokal untuk fungsi kasir ---
     const [cartItems, setCartItems] = useState<CartItem[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
     const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
     const [selectedMejaId, setSelectedMejaId] = useState<string | null>(null);
-    const [paymentMethod, setPaymentMethod] = useState<'cash' | 'duitku'>('cash');
+    const [paymentMethod, setPaymentMethod] = useState<'cash' | 'midtrans'>('cash');
     const [amountPaid, setAmountPaid] = useState<number>(0);
     const [transactionType, setTransactionType] = useState<'dine_in' | 'take_away'>('dine_in');
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [showHistory, setShowHistory] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-    // --- State untuk Success Pop-up ---
     const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
     const [successInvoice, setSuccessInvoice] = useState<InvoiceForPopUp | null>(null);
     const [successChange, setSuccessChange] = useState<number | undefined>(undefined);
 
-    // --- EFFECT: Update state when `currentInertiaPageProps` (from usePage) change ---
-    // This effect ensures that if the page props are updated (e.g., due to a full Inertia visit,
-    // or router.reload() outside of a specific onSuccess callback), our local states reflect it.
+    // State to track if Snap.js is loaded
+    const [isSnapLoaded, setIsSnapLoaded] = useState(false);
+
     useEffect(() => {
-        // Lakukan pengecekan tipe untuk menghindari potensi 'undefined' jika prop tidak selalu ada
-        // Meskipun CashierPageProps sudah didefinisikan, `usePage().props` bisa lebih umum.
-        // Konversi ini memberi tahu TypeScript bahwa kita mengharapkan properti-properti ini ada.
         setProducts(currentInertiaPageProps.products);
         setMejas(currentInertiaPageProps.mejas);
         setCustomers(currentInertiaPageProps.customers);
         setSettings(currentInertiaPageProps.settings);
         setKategoris(currentInertiaPageProps.kategoris);
         setTransactionHistory(currentInertiaPageProps.latestTransactions);
-    }, [currentInertiaPageProps]); // Depend on the entire props object from usePage
+    }, [currentInertiaPageProps]);
 
-    // --- EFFECT: Menangani redirect Duitku dan pembaruan data setelahnya ---
+    // --- Dynamic Snap.js Loading ---
+    useEffect(() => {
+        const loadSnapScript = () => {
+            if (document.getElementById('midtrans-snap-script')) {
+                setIsSnapLoaded(true);
+                return;
+            }
+
+            const script = document.createElement('script');
+            // Use the sandbox URL for development/testing
+            // For production, change to 'https://app.midtrans.com/snap/snap.js'
+            script.src = 'https://app.sandbox.midtrans.com/snap/snap.js'; // Make sure this matches your backend's isProduction setting
+            script.id = 'midtrans-snap-script';
+            // IMPORTANT: Replace with your actual Midtrans Client Key from your .env or similar
+            // Example for Vite/Next.js: import.meta.env.VITE_MIDTRANS_CLIENT_KEY or process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY
+            // Ensure this environment variable exists and is correctly configured for your frontend.
+            script.setAttribute('data-client-key', import.meta.env.VITE_MIDTRANS_CLIENT_KEY || '');
+
+            script.onload = () => {
+                console.log('Midtrans Snap.js loaded successfully!');
+                setIsSnapLoaded(true);
+            };
+
+            script.onerror = (error) => {
+                console.error('Failed to load Midtrans Snap.js:', error);
+                toast.error('Gagal memuat Midtrans Snap.js', {
+                    description: 'Silakan coba refresh halaman atau hubungi administrator.',
+                });
+            };
+
+            document.body.appendChild(script);
+        };
+
+        loadSnapScript();
+
+        // Optional cleanup: remove script when component unmounts if not needed globally
+        return () => {
+            const script = document.getElementById('midtrans-snap-script');
+            if (script && document.body.contains(script)) {
+                // document.body.removeChild(script); // Uncomment if you want to remove the script on unmount
+            }
+        };
+    }, []); // Empty dependency array ensures this runs once on mount
+
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search);
-        const duitkuStatus = urlParams.get('status');
-        const duitkuOrderId = urlParams.get('merchantOrderId');
+        const midtransStatus = urlParams.get('status');
+        const midtransOrderId = urlParams.get('order_id');
 
-        if (duitkuStatus) {
+        if (midtransStatus) {
+            // Clean up URL parameters after processing
             urlParams.delete('status');
-            urlParams.delete('reference');
-            urlParams.delete('merchantOrderId');
+            urlParams.delete('order_id');
+            urlParams.delete('transaction_status');
+            urlParams.delete('payment_type');
+            urlParams.delete('fraud_status');
             window.history.replaceState({}, document.title, `${window.location.pathname}${urlParams.toString() ? '?' + urlParams.toString() : ''}`);
 
-            if (duitkuStatus === 'SUCCESS') {
-                toast.success('Pembayaran Duitku Berhasil!', {
-                    description: `Transaksi ${duitkuOrderId} telah selesai.`,
+            if (midtransStatus === 'success') {
+                toast.success('Pembayaran Midtrans Berhasil!', {
+                    description: `Transaksi ${midtransOrderId} telah selesai.`,
                     duration: 5000,
                 });
-            } else if (duitkuStatus === 'FAILED' || duitkuStatus === 'CANCELLED') {
-                toast.error('Pembayaran Duitku Gagal', {
-                    description: `Transaksi ${duitkuOrderId} dibatalkan atau gagal.`,
+            } else if (midtransStatus === 'error') {
+                toast.error('Pembayaran Midtrans Gagal', {
+                    description: `Transaksi ${midtransOrderId} dibatalkan atau gagal.`,
+                    duration: 5000,
+                });
+            } else if (midtransStatus === 'pending') {
+                toast.info('Pembayaran Midtrans Pending', {
+                    description: `Transaksi ${midtransOrderId} sedang menunggu pembayaran.`,
                     duration: 5000,
                 });
             } else {
-                toast.info('Status Pembayaran Duitku', {
-                    description: `Status: ${duitkuStatus} untuk Order ID: ${duitkuOrderId}.`,
+                toast.info('Status Pembayaran Midtrans', {
+                    description: `Status: ${midtransStatus} untuk Order ID: ${midtransOrderId}.`,
                     duration: 5000,
                 });
             }
-            // Reset form dan reload halaman untuk mendapatkan state terbaru termasuk history
+
+            // Reset cart and form fields only after handling Midtrans redirect
             setCartItems([]);
             setAmountPaid(0);
             setSelectedCustomerId(null);
             setSelectedMejaId(null);
             setPaymentMethod('cash');
             setTransactionType('dine_in');
+
+            // Reload data from the server to get updated stock and transactions
             router.reload({
                 only: ['products', 'mejas', 'customers', 'settings', 'kategoris', 'latestTransactions'],
                 onSuccess: (page) => {
-                    // --- FIX TYPE ASSERTION: Convert to unknown first, then to CashierPageProps ---
                     const typedPageProps = page.props as unknown as CashierPageProps;
                     setProducts(typedPageProps.products);
                     setMejas(typedPageProps.mejas);
@@ -169,9 +217,8 @@ const CashierPage: React.FC<CashierPageProps> = ({
                 },
             });
         }
-    }, []); // Dependensi diatur kosong, karena ini hanya perlu dijalankan sekali saat komponen mount.
+    }, []);
 
-    // --- Filter Produk Berdasarkan Pencarian dan Kategori (memakai state `products`) ---
     const filteredProducts = useMemo(() => {
         return products.filter((product) => {
             const matchesSearch = product.nama_produk.toLowerCase().includes(searchTerm.toLowerCase());
@@ -180,7 +227,6 @@ const CashierPage: React.FC<CashierPageProps> = ({
         });
     }, [products, searchTerm, selectedCategoryId]);
 
-    // --- Perhitungan Ringkasan Pesanan (memakai state `settings`) ---
     const subTotal = useMemo(() => {
         return cartItems.reduce((acc, item) => acc + (item.harga_jual || 0) * item.qty, 0);
     }, [cartItems]);
@@ -190,7 +236,6 @@ const CashierPage: React.FC<CashierPageProps> = ({
     }, [subTotal, settings.ppn]);
 
     const biayaLayanan = useMemo(() => {
-        // KOREKSI: Menggunakan `settings.biaya_lainnya` sesuai dengan kode backend
         return transactionType === 'dine_in' ? settings.biaya_lainnya || 0 : 0;
     }, [transactionType, settings.biaya_lainnya]);
 
@@ -202,7 +247,6 @@ const CashierPage: React.FC<CashierPageProps> = ({
         return paymentMethod === 'cash' ? (amountPaid || 0) - (totalAmount || 0) : 0;
     }, [paymentMethod, amountPaid, totalAmount]);
 
-    // --- Fungsi Penambahan dan Pengelolaan Keranjang ---
     const addProductToCart = (product: Product) => {
         if (product.stok === 0) {
             toast.error('Stok Habis', {
@@ -256,13 +300,11 @@ const CashierPage: React.FC<CashierPageProps> = ({
         });
     };
 
-    // Fungsi untuk mendapatkan jumlah produk di keranjang
     const getProductQuantityInCart = (productId: number) => {
         const item = cartItems.find((item) => item.id === productId);
         return item ? item.qty : 0;
     };
 
-    // --- Fungsi Proses Pembayaran ---
     const handleProcessPayment = async () => {
         if (cartItems.length === 0) {
             toast.error('Keranjang Kosong', {
@@ -278,23 +320,31 @@ const CashierPage: React.FC<CashierPageProps> = ({
             return;
         }
 
+        // Add this check for Midtrans payment method
+        if (paymentMethod === 'midtrans' && !isSnapLoaded) {
+            toast.error('Midtrans belum siap', {
+                description: 'Snap.js sedang dimuat. Mohon tunggu sebentar atau refresh halaman.',
+            });
+            return;
+        }
+
         setIsLoading(true);
 
         try {
             const payload = {
                 cartItems: cartItems.map((item) => ({ id: item.id, qty: item.qty })),
                 paymentMethod,
-                amountPaid: paymentMethod === 'cash' ? amountPaid : null,
+                amountPaid: paymentMethod === 'cash' ? amountPaid : null, // Only send amountPaid for cash
                 customerId: selectedCustomerId,
                 mejaId: transactionType === 'dine_in' ? selectedMejaId : null,
                 type: transactionType,
             };
 
             const response = await axios.post(route('pos.process_sale'), payload);
-            const data = response.data; // Data dari respons JSON Laravel
+            const data = response.data;
 
             if (data.success) {
-                // Reset form di frontend terlepas dari metode pembayaran
+                // Always reset cart and form fields after a successful sale initiation
                 setCartItems([]);
                 setAmountPaid(0);
                 setSelectedCustomerId(null);
@@ -303,36 +353,80 @@ const CashierPage: React.FC<CashierPageProps> = ({
                 setTransactionType('dine_in');
 
                 if (paymentMethod === 'cash') {
-                    // Tampilkan pop-up sukses dan update history
-                    setSuccessInvoice(data.invoice as InvoiceForPopUp); // Type assertion untuk data.invoice
+                    setSuccessInvoice(data.invoice as InvoiceForPopUp);
                     setSuccessChange(data.change);
                     setIsSuccessModalOpen(true);
 
                     toast.success('Pembayaran Tunai Berhasil!', {
-                        description: `Transaksi selesai. Kembalian: ${new Intl.NumberFormat('id-ID').format(data.change)}.`,
+                        description: `Transaksi selesai. Kembalian: ${new Intl.NumberFormat('id-ID').format(data.change || 0)}.`,
                         duration: 3000,
                     });
-                    // Reload data untuk update riwayat transaksi, stok produk, dll.
+                    // Reload data after cash transaction to update stocks and history
                     router.reload({
-                        // Specify only the props that need to be reloaded for efficiency
                         only: ['products', 'mejas', 'latestTransactions'],
                         onSuccess: (page) => {
-                            // Type assertion here for the router.reload() success callback
-                            const typedPageProps = page.props as unknown as CashierPageProps; // THE FIX
+                            const typedPageProps = page.props as unknown as CashierPageProps;
                             setProducts(typedPageProps.products);
                             setMejas(typedPageProps.mejas);
                             setTransactionHistory(typedPageProps.latestTransactions);
-                            // customers, settings, kategoris tidak di-reload dengan `only` di atas,
-                            // jadi tidak perlu di-update di sini untuk menghindari error undefined.
                         },
                     });
-                } else if (paymentMethod === 'duitku') {
-                    toast.info('Mengarahkan ke Duitku...', {
-                        description: 'Harap tunggu, Anda akan diarahkan ke halaman pembayaran.',
+                } else if (paymentMethod === 'midtrans') {
+                    toast.info('Mengarahkan ke Midtrans...', {
+                        description: 'Harap tunggu, Anda akan diarahkan ke halaman pembayaran atau pop-up akan muncul.',
                         duration: 3000,
                     });
-                    if (data.paymentUrl) {
-                        window.location.href = data.paymentUrl;
+
+                    if (data.snapToken && window.snap && isSnapLoaded) {
+                        window.snap.pay(data.snapToken, {
+                            onSuccess: function (result) {
+                                console.log('Midtrans Payment Success:', result);
+                                toast.success('Pembayaran Berhasil!', {
+                                    description: `Transaksi ${data.invoiceNumber} selesai.`,
+                                });
+                                // Reload data to update stocks and history after successful payment
+                                router.reload({
+                                    only: ['products', 'mejas', 'latestTransactions'],
+                                });
+                            },
+                            onPending: function (result) {
+                                console.log('Midtrans Payment Pending:', result);
+                                toast.info('Pembayaran Tertunda', {
+                                    description: `Transaksi ${data.invoiceNumber} sedang menunggu pembayaran.`,
+                                });
+                                // Reload data to update history for pending status
+                                router.reload({
+                                    only: ['products', 'mejas', 'latestTransactions'],
+                                });
+                            },
+                            onError: function (result) {
+                                console.log('Midtrans Payment Error:', result);
+                                toast.error('Pembayaran Gagal', {
+                                    description: `Transaksi ${data.invoiceNumber} gagal.`,
+                                });
+                                // Reload data to update history for failed status
+                                router.reload({
+                                    only: ['products', 'mejas', 'latestTransactions'],
+                                });
+                            },
+                            onClose: function () {
+                                console.log('Customer closed Midtrans pop-up without finishing payment.');
+                                toast.warning('Pembayaran Dibatalkan', {
+                                    description: 'Anda menutup jendela pembayaran.',
+                                });
+                                // Optionally reload here if you want to update transaction status immediately if it was pending
+                                router.reload({
+                                    only: ['products', 'mejas', 'latestTransactions'],
+                                });
+                            },
+                        });
+                    } else if (data.redirectUrl) {
+                        // Fallback or explicit redirect option (if backend provides redirectUrl directly)
+                        window.location.href = data.redirectUrl;
+                    } else {
+                        toast.error('Gagal Memuat Pembayaran Midtrans', {
+                            description: 'Snap token tidak tersedia atau Snap.js belum dimuat dengan benar.',
+                        });
                     }
                 }
             } else {
@@ -377,7 +471,6 @@ const CashierPage: React.FC<CashierPageProps> = ({
         router.post(route('logout'));
     };
 
-    // Fungsi untuk mencetak invoice dari modal sukses
     const handlePrintFromModal = () => {
         if (successInvoice) {
             const printUrl = route('penjualan.print', successInvoice.id);
@@ -389,33 +482,29 @@ const CashierPage: React.FC<CashierPageProps> = ({
         <CashierLayout>
             <Head title="Kasir POS" />
 
-            {/* Navbar */}
             <CashierNavbar
                 settings={settings}
                 showHistory={showHistory}
                 setShowHistory={setShowHistory}
                 isMobileMenuOpen={isMobileMenuOpen}
                 setIsMobileMenuOpen={setIsMobileMenuOpen}
-                auth={initialAuth} // Menggunakan initialAuth karena stabil
+                auth={initialAuth}
                 onLogout={handleLogout}
             />
 
-            {/* Mobile Menu */}
             {isMobileMenuOpen && (
                 <MobileMenu
                     showHistory={showHistory}
                     setShowHistory={setShowHistory}
                     setIsMobileMenuOpen={setIsMobileMenuOpen}
-                    auth={initialAuth} // Menggunakan initialAuth
+                    auth={initialAuth}
                     onLogout={handleLogout}
                 />
             )}
 
-            {/* Main Content Area */}
             <div className="flex flex-1 overflow-auto bg-[#F5F5F5] p-4 lg:p-6">
                 {!showHistory ? (
                     <div className="grid w-full grid-cols-1 gap-6 lg:grid-cols-3">
-                        {/* Bagian Daftar Produk */}
                         <ProductGrid
                             products={products}
                             kategoris={kategoris}
@@ -430,7 +519,6 @@ const CashierPage: React.FC<CashierPageProps> = ({
                             getProductQuantityInCart={getProductQuantityInCart}
                         />
 
-                        {/* Bagian Ringkasan Keranjang & Pembayaran */}
                         <OrderSummary
                             customers={customers}
                             mejas={mejas}
@@ -462,11 +550,10 @@ const CashierPage: React.FC<CashierPageProps> = ({
                     <TransactionHistory
                         transactionHistory={transactionHistory}
                         isLoading={isLoading}
-                        initialInvoiceSearchTerm={currentInertiaPageProps.filters?.invoice_number || ''} // Menggunakan currentInertiaPageProps
+                        initialInvoiceSearchTerm={currentInertiaPageProps.filters?.invoice_number || ''}
                     />
                 )}
             </div>
-            {/* Custom scrollbar styles */}
             <style>{`
                 .custom-scrollbar::-webkit-scrollbar {
                     width: 8px;
@@ -485,7 +572,6 @@ const CashierPage: React.FC<CashierPageProps> = ({
                 }
             `}</style>
 
-            {/* --- Success Pop-up Dialog --- */}
             <Dialog open={isSuccessModalOpen} onOpenChange={setIsSuccessModalOpen}>
                 <DialogContent className="sm:max-w-[500px]">
                     <DialogHeader className="flex flex-col items-center gap-2">
@@ -565,7 +651,7 @@ const CashierPage: React.FC<CashierPageProps> = ({
                             <Printer className="mr-2 h-5 w-5" /> Cetak Struk
                         </Button>
                         <Button
-                            onClick={() => setIsSuccessModalOpen(false)} // Menutup modal
+                            onClick={() => setIsSuccessModalOpen(false)}
                             variant="outline"
                             className="flex-1 rounded-lg border-biru py-3 text-base text-biru hover:bg-biru/10"
                         >

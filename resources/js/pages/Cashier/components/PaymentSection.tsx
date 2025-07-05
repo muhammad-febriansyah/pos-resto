@@ -1,5 +1,3 @@
-// src/Components/OrderSummary/PaymentSection.tsx
-
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,11 +5,12 @@ import { Wallet } from 'lucide-react';
 import React from 'react';
 
 interface PaymentSectionProps {
-    paymentMethod: 'cash' | 'duitku';
-    setPaymentMethod: (method: 'cash' | 'duitku') => void;
+    // Payment method type updated to 'midtrans'
+    paymentMethod: 'cash' | 'midtrans';
+    setPaymentMethod: (method: 'cash' | 'midtrans') => void;
     amountPaid: number;
     setAmountPaid: (amount: number) => void;
-    totalAmount: number;
+    totalAmount: number; // This prop isn't used in this component, but keeping it as it was in your original interface
     change: number;
 }
 
@@ -30,11 +29,12 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({ paymentMethod, setPayme
                     Tunai
                 </Button>
                 <Button
-                    variant={paymentMethod === 'duitku' ? 'default' : 'outline'}
-                    onClick={() => setPaymentMethod('duitku')}
-                    className={`h-10 flex-1 rounded-lg text-base transition-colors duration-200 ${paymentMethod === 'duitku' ? 'bg-biru text-white shadow-sm hover:bg-indigo-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                    // Replaced 'duitku' with 'midtrans'
+                    variant={paymentMethod === 'midtrans' ? 'default' : 'outline'}
+                    onClick={() => setPaymentMethod('midtrans')}
+                    className={`h-10 flex-1 rounded-lg text-base transition-colors duration-200 ${paymentMethod === 'midtrans' ? 'bg-biru text-white shadow-sm hover:bg-indigo-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
                 >
-                    Duitku
+                    Midtrans
                 </Button>
             </div>
 

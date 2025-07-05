@@ -15,6 +15,11 @@ class Penjualan extends Model
     //     'details',
     // ];
 
+    public function produk()
+    {
+        return $this->belongsTo(Produk::class);
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
@@ -22,7 +27,7 @@ class Penjualan extends Model
 
     public function customer()
     {
-        return $this->belongsTo(User::class, 'customer_id'); // Asumsi customer juga dari tabel users
+        return $this->belongsTo(User::class, 'customer_id');
     }
 
     public function meja()
@@ -33,5 +38,10 @@ class Penjualan extends Model
     public function details()
     {
         return $this->hasMany(DetailPenjualan::class);
+    }
+
+    public function rating()
+    {
+        return $this->hasMany(Rating::class);
     }
 }

@@ -1,5 +1,3 @@
-// src/Components/OrderSummary/OrderSummary.tsx
-
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -24,8 +22,8 @@ interface OrderSummaryProps {
     setTransactionType: (type: 'dine_in' | 'take_away') => void;
     selectedMejaId: string | null;
     setSelectedMejaId: (id: string | null) => void;
-    paymentMethod: 'cash' | 'duitku';
-    setPaymentMethod: (method: 'cash' | 'duitku') => void;
+    paymentMethod: 'cash' | 'midtrans';
+    setPaymentMethod: (method: 'cash' | 'midtrans') => void;
     amountPaid: number;
     setAmountPaid: (amount: number) => void;
     subTotal: number;
@@ -74,7 +72,6 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
                 </CardTitle>
             </CardHeader>
             <CardContent className="custom-scrollbar flex-1 space-y-6 overflow-y-auto px-0 pt-4 pb-0">
-                {/* Pilih Pelanggan */}
                 <div>
                     <Label htmlFor="customer-select" className="mb-2 flex items-center text-sm font-medium text-gray-700">
                         <Users className="mr-2 h-4 w-4 text-gray-500" /> Pelanggan
@@ -103,7 +100,6 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
                     </Select>
                 </div>
 
-                {/* Tipe Transaksi (Toggle Buttons) */}
                 <div>
                     <Label className="mb-2 flex items-center text-sm font-medium text-gray-700">
                         <ReceiptText className="mr-2 h-4 w-4 text-gray-500" /> Tipe Transaksi
@@ -126,7 +122,6 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
                     </div>
                 </div>
 
-                {/* Pilih Meja (Hanya muncul jika tipe transaksi 'Dine In') */}
                 {transactionType === 'dine_in' && (
                     <div>
                         <Label htmlFor="meja-select" className="mb-2 flex items-center text-sm font-medium text-gray-700">
@@ -156,7 +151,6 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
                     </div>
                 )}
 
-                {/* Cart Table */}
                 <CartTable cartItems={cartItems} updateQuantity={updateQuantity} removeItemFromCart={removeItemFromCart} />
 
                 <div className="space-y-3 rounded-xl bg-gray-50 p-6 text-right shadow-inner">
@@ -178,7 +172,6 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
                     </div>
                 </div>
 
-                {/* Payment Method Section */}
                 <PaymentSection
                     paymentMethod={paymentMethod}
                     setPaymentMethod={setPaymentMethod}

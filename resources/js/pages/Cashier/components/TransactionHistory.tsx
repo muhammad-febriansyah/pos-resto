@@ -1,5 +1,3 @@
-// src/Components/TransactionHistory.tsx
-
 import { Card, CardContent } from '@/components/ui/card';
 import { Penjualan } from '@/types/penjualan';
 import { Loader2 } from 'lucide-react';
@@ -10,9 +8,11 @@ import { DataTable } from './data-table';
 interface TransactionHistoryProps {
     transactionHistory: Penjualan[];
     isLoading: boolean;
+    // --- FIX: Add the missing prop here ---
+    initialInvoiceSearchTerm: string;
 }
 
-const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transactionHistory, isLoading }) => {
+const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transactionHistory, isLoading, initialInvoiceSearchTerm }) => {
     const handlePrintInvoice = (transaction: Penjualan) => {
         const printUrl = route('penjualan.print', transaction.id);
         window.open(printUrl, '_blank');
@@ -29,7 +29,8 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transactionHist
                 ) : transactionHistory.length === 0 ? (
                     <p className="py-10 text-center text-gray-500">Tidak ada riwayat transaksi.</p>
                 ) : (
-                    <DataTable columns={columns(handlePrintInvoice)} data={transactionHistory} />
+                    // You might need to pass initialInvoiceSearchTerm to DataTable if it uses it internally
+                    <DataTable columns={columns(handlePrintInvoice)} data={transactionHistory} initialInvoiceSearchTerm={initialInvoiceSearchTerm} />
                 )}
             </CardContent>
         </Card>

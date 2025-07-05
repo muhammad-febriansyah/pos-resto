@@ -14,8 +14,10 @@
         "inertiajs/inertia-laravel": "^2.0",
         "laravel/framework": "^12.0",
         "laravel/sanctum": "^4.0",
+        "laravel/socialite": "^5.21",
         "laravel/tinker": "^2.10.1",
         "leandrocfe/filament-apex-charts": "^3.1",
+        "midtrans/midtrans-php": "^2.6",
         "nuxtifyts/dash-stack-theme": "^1.2",
         "tightenco/ziggy": "^2.4"
     },

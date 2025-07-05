@@ -23,7 +23,7 @@ class Produk extends Model
         return $this->hasMany(ProdukBahan::class);
     }
 
-    public function details()
+    public function detailPenjualan()
     {
         return $this->hasMany(DetailPenjualan::class);
     }
@@ -31,5 +31,15 @@ class Produk extends Model
     public function penjualan()
     {
         return $this->hasMany(Penjualan::class, 'produk_id');
+    }
+
+    public function wishlist()
+    {
+        return $this->hasMany(Wishlist::class);
+    }
+
+    public function rating()
+    {
+        return $this->hasMany(Rating::class);
     }
 }

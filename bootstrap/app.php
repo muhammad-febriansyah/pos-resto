@@ -23,8 +23,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             HandleAppearance::class,
             HandleInertiaRequests::class,
-            UpgradeToHttpsUnderNgrok::class,
+            // UpgradeToHttpsUnderNgrok::class,
             AddLinkHeadersForPreloadedAssets::class,
+
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

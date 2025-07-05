@@ -120,7 +120,28 @@ class EditSettings extends Page implements HasForms
                                 }
                             })
                             ->columnSpan(['lg' => 2]), // Span 2 kolom pada layout large
-                    ])
+                    ]),
+                Section::make('Thumbnail') // Judul bagian
+                    ->description('Unggah thumbnail situs web Anda.') // Deskripsi bagian
+                    ->schema([
+                        FileUpload::make('thumbnail')
+                            ->label('Thumbnail') // Label dalam Bahasa Indonesia
+                            ->disk('public')
+                            ->directory('image-upload-server') // Direktori penyimpanan logo
+                            ->maxSize(3072) // Max file size in KB (3MB)
+                            ->image()
+                            ->deletable(true) // Memungkinkan penghapusan file dari form
+                            ->deleteUploadedFileUsing(function ($record, $file) {
+                                if (isset($record->thumbnail)) {
+                                    if ($record->thumbnail == $file->thumbnail) {
+                                        if (File::exists(public_path('storage\\' . $record->thumbnail))) {
+                                            File::delete(public_path('storage\\' . $record->thumbnail));
+                                        }
+                                    }
+                                }
+                            })
+                            ->columnSpan(['lg' => 2]), // Span 2 kolom pada layout large
+                    ]),
 
             ])
             ->statePath('data');
@@ -143,10 +164,14 @@ class EditSettings extends Page implements HasForms
         try {
             $data = $this->form->getState();
             $q = Setting::findOrFail(1);
-
-            // Bersihkan logo lama jika berubah
             if (isset($data['logo']) && $data['logo'] && $data['logo'] !== $q->logo) {
                 $oldPath = str_replace('storage/', '', $q->logo);
+                if (Storage::disk('public')->exists($oldPath)) {
+                    Storage::disk('public')->delete($oldPath);
+                }
+            }
+            if (isset($data['thumbnail']) && $data['thumbnail'] && $data['thumbnail'] !== $q->thumbnail) {
+                $oldPath = str_replace('storage/', '', $q->thumbnail);
                 if (Storage::disk('public')->exists($oldPath)) {
                     Storage::disk('public')->delete($oldPath);
                 }

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ApiController;
 use App\Http\Controllers\CashierController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\KasirController;
@@ -7,7 +8,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', function () {
-    return Inertia::render('welcome');
+    return redirect(route('filament.admin.auth.login'));
 })->name('home');
 
 Route::middleware('auth')->group(function () {
@@ -21,6 +22,7 @@ Route::get('login', function () {
     return redirect()->route('filament.admin.auth.login');
 })->name('login');
 Route::post('/duitku/callback', [CashierController::class, 'callback']);
+// Route::post('/duitku/callback', [ApiController::class, 'handleDuitkuCallback']);
 Route::get('/test', function () {
     $penjualan = \App\Models\Penjualan::where('invoice_number', 'INV202506168LC6SB')->first();
 

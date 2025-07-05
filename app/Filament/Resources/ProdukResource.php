@@ -15,6 +15,7 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
@@ -248,7 +249,7 @@ class ProdukResource extends Resource
                 Section::make('Detail & Media Produk')
                     ->description('Lengkapi deskripsi produk dan unggah gambar yang mewakili produk.')
                     ->schema([
-                        RichEditor::make('deskripsi')
+                        Textarea::make('deskripsi')
                             ->label('Deskripsi')
                             ->placeholder('Tuliskan penjelasan lengkap mengenai produk...')
                             ->nullable()
